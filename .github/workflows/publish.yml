@@ -6,8 +6,10 @@ on:
     tags:
       - "*" # Push events to matching any tag format, i.e. 1.0, 20.15.10
 
+permissions: read-all|write-all
+
 env:
-  PLUGIN_NAME: logseq-jira
+  PLUGIN_NAME: logseq-self-hosted-jira
 
 jobs:
   build:
