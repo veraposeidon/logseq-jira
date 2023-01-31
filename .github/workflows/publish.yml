@@ -7,12 +7,12 @@ on:
       - "*" # Push events to matching any tag format, i.e. 1.0, 20.15.10
 
 env:
-  PLUGIN_NAME: logseq-jira
+  PLUGIN_NAME: logseq-self-hosted-jira
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    permissions: read-all|write-all
     steps:
       - uses: actions/checkout@v2
       - name: Use Node.js
