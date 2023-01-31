@@ -17,7 +17,7 @@ function main() {
         key: 'refreshJira',
         label: 'Refresh Jira',
         desc: 'Refresh Jira links in block',
-        keybinding: { binding: 'mod+shift+j' }
+        keybinding: { binding: 'ctrl+mod+shift+j' }
     }, (e) => {
         return updateJiraIssue();
     })
@@ -31,11 +31,11 @@ function main() {
 // DEV-1000
 const issueKeyRegex: RegExp = /(?<![\,\.\/\S])(?<issue>[A-Z][A-Z0-9]+-[0-9]+)(?!.?\])/gim;
 
-// https://company.atlassian.net/browse/DEV-1000
-const jiraRegex: RegExp = /(?<!\()(?<url>https*:\/\/.{1,25}.atlassian.net\/browse\/(?<issue>[A-Z][A-Z0-9]{1,6}-[0-9]{1,8}))(?!\))/gim;
+// https://subdomain.domain.com/browse/DEV-1000
+const jiraRegex: RegExp = /(?<!\()(?<url>https*:\/\/[A-Za-z0-9 ]+\.[A-Za-z0-9 ]+\.[A-Za-z0-9 ]+\/browse\/(?<issue>[A-Z][A-Z0-9]{1,6}-[0-9]{1,8}))(?!\))/gim;
 
-// [Some Jira status text we could update](https://company.atlassian.net/browse/DEV-1000)
-const jiraLinkRegex: RegExp = /\[(?<description>[^\]]*)?\]\((?<url>https?:\/\/[A-Za-z0-9 ]+\.atlassian\.net\/browse\/(?<issue>[A-Za-z0-9\-]+))\)/gim;
+// [Some Jira status text we could update](https://subdomain.domain.com/browse/DEV-1000)
+const jiraLinkRegex: RegExp = /[A-Z ]+\[(?<description>[^\]]*)?\]\((?<url>https?:\/\/[A-Za-z0-9 ]+\.[A-Za-z0-9 ]+\.[A-Za-z0-9 ]+\/browse\/(?<issue>[A-Za-z0-9\-]+))\)/gim;
 
 // [A Markdown URL](https://some.other-url.com/we-dont-care-about)
 const markdownLinkRegex: RegExp = /(?:__|[*#])|\[(.*?)\]\(.*?\)/gi;
@@ -88,7 +88,7 @@ async function generateTextFromAPI(issueKey: string): Promise<string> {
     try {
         if (!issueTestRegex.test(issueKey)) console.log(`logseq-jira: Badly structured issueKey ${issueKey}`);
         const creds = Buffer.from(`${logseq.settings?.jiraUsername}:${logseq.settings?.jiraAPIToken}`).toString("base64");
-        const issueRest = `https://${logseq.settings?.jiraBaseURL}/rest/api/3/issue/${issueKey}`;
+        const issueRest = `https://${logseq.settings?.jiraBaseURL}/rest/api/2/issue/${issueKey}`;
         const jiraURL = `https://${logseq.settings?.jiraBaseURL}/browse/${issueKey}`;
         const r = await fetch(issueRest, {
             method: 'GET',
@@ -103,7 +103,10 @@ async function generateTextFromAPI(issueKey: string): Promise<string> {
             //logseq.UI.showMsg(`Error requesting info for ${issueKey}`);
             return `[Error ${r.status}|${issueKey}|${data.errorMessages[0]}](${jiraURL})`
         }
-        return `[${data?.fields.status.name}|${issueKey}|${data?.fields.summary}](${jiraURL})`;
+        let taskStatus = 'TODO';
+        if (data?.fields.status.name.toUpperCase() === 'IN PROGRESS') taskStatus = 'DOING';
+        if (data?.fields.status.name.toUpperCase() === 'DONE' || data?.fields.status.name.toUpperCase() === 'CLOSED') taskStatus = 'DONE';
+        return `${taskStatus} [${data?.fields.status.name}|${issueKey}|${data?.fields.summary}](${jiraURL})`;
     } catch (e) {
         console.log('logseq-jira', e.message);
         return `${issueKey} : Error.`
